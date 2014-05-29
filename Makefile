@@ -7,11 +7,11 @@ RAMDISK =  #-DRAMDISK=512
 AS86	=as86 -0 -a
 LD86	=ld86 -0
 
-AS	=as
+AS	=as --32
 LD	=ld
 LDFLAGS	=-m elf_i386 -Ttext 0 -e startup_32
-CC	=gcc -mcpu=i386 $(RAMDISK)
-CFLAGS	=-Wall -O2 -fomit-frame-pointer 
+CC	=gcc -m32 -march=i386 $(RAMDISK)
+CFLAGS	=-Wall -O2 -fomit-frame-pointer -fno-stack-protector 
 
 CPP	=cpp -nostdinc -Iinclude
 
@@ -52,8 +52,6 @@ tools/build: tools/build.c
 	-o tools/build tools/build.c
 
 boot/head.o: boot/head.s
-	gcc -I./include -traditional -c boot/head.s
-	mv head.o boot/
 
 tools/system:	boot/head.o init/main.o \
 		$(ARCHIVES) $(DRIVERS) $(MATH) $(LIBS)
