@@ -11,7 +11,9 @@
  * the page directory will exist. The startup code will be overwritten by
  * the page directory.
  */
-.text
+
+# change section from .text to .text.startup, due to default ld script will put .text.startup in front
+.section .text.startup
 .globl idt,gdt,pg_dir,tmp_floppy_area
 pg_dir:
 .globl startup_32
