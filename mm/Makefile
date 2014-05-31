@@ -1,5 +1,5 @@
 CC	=gcc -m32 -march=i386
-CFLAGS	=-Wall -O -fstrength-reduce -fomit-frame-pointer -fno-stack-protector \
+CFLAGS	=-g -Wall -O -fstrength-reduce -fomit-frame-pointer -fno-stack-protector \
 	-finline-functions -nostdinc -I../include
 AS	=as --32
 AR	=ar

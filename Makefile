@@ -11,7 +11,7 @@ AS	=as --32
 LD	=ld
 LDFLAGS	=-m elf_i386 -Ttext 0 -e startup_32
 CC	=gcc -m32 -march=i386 $(RAMDISK)
-CFLAGS	=-Wall -O2 -fomit-frame-pointer -fno-stack-protector 
+CFLAGS	=-g -Wall -O2 -fomit-frame-pointer -fno-stack-protector 
 
 CPP	=cpp -nostdinc -Iinclude
 
