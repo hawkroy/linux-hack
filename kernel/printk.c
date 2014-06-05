@@ -18,6 +18,28 @@ static char buf[1024];
 
 extern int vsprintf(char * buf, const char * fmt, va_list args);
 
+int kernel_debug(const char *fmt, ...)
+{
+	va_list args;
+	int i;
+
+	va_start(args, fmt);
+	i=vsprintf(buf,fmt,args);
+	va_end(args);
+
+    __asm__("movw $0x402, %%dx\n\t"
+        "movl %0, %%ecx\n\t"
+        "movl $buf, %%esi\n\t"
+        "cld\n\t"
+        "1:\n\t"
+        "lodsb\n\t"
+        "outb %%ax, %%dx\n\t"
+        "loop 1b\n\t"
+        ::"r" (i):"ax","cx","si","dx");
+
+	return i;
+}
+
 int printk(const char *fmt, ...)
 {
 	va_list args;
@@ -26,7 +48,7 @@ int printk(const char *fmt, ...)
 	va_start(args, fmt);
 	i=vsprintf(buf,fmt,args);
 	va_end(args);
-#if 0
+
 	__asm__("push %%fs\n\t"
 		"push %%ds\n\t"
 		"pop %%fs\n\t"
@@ -38,16 +60,6 @@ int printk(const char *fmt, ...)
 		"popl %0\n\t"
 		"pop %%fs"
 		::"r" (i):"ax","cx","dx");
-#endif
-    __asm__("movw $0x402, %%dx\n\t"
-        "movl %0, %%ecx\n\t"
-        "movl $buf, %%esi\n\t"
-        "cld\n\t"
-        "1:\n\t"
-        "lodsb\n\t"
-        "outb %%ax, %%dx\n\t"
-        "loop 1b\n\t"
-        ::"r" (i):"ax","cx","si","dx");
 
 	return i;
 }
