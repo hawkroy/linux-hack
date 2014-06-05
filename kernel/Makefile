@@ -7,7 +7,7 @@
 #
 
 AR	=ar
-AS	=as --32
+AS	=as --32 -g
 LD	=ld -m elf_i386
 LDFLAGS	=-s -x
 CC	=gcc -march=i386 -m32

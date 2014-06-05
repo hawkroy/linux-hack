@@ -7,7 +7,7 @@ RAMDISK =  #-DRAMDISK=512
 AS86	=as86 -0 -a
 LD86	=ld86 -0
 
-AS	=as --32
+AS	=as --32 -g
 LD	=ld
 LDFLAGS	=-m elf_i386 -Ttext 0 -e startup_32
 CC	=gcc -m32 -march=i386 $(RAMDISK)

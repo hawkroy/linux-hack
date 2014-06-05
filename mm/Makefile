@@ -1,7 +1,7 @@
 CC	=gcc -m32 -march=i386
 CFLAGS	=-g -Wall -O -fstrength-reduce -fomit-frame-pointer -fno-stack-protector \
 	-finline-functions -nostdinc -I../include
-AS	=as --32
+AS	=as --32 -g
 AR	=ar
 LD	=ld -m elf_i386
 CPP	=gcc -E -nostdinc -I../include

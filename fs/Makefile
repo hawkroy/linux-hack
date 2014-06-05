@@ -1,5 +1,5 @@
 AR	=ar
-AS	=as --32 
+AS	=as --32 -g
 CC	=gcc -m32 -march=i386
 LD	=ld -m elf_i386
 CFLAGS	=-g -Wall -fstrength-reduce -fomit-frame-pointer -fno-stack-protector \
