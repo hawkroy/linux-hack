@@ -10,6 +10,12 @@ int tty_write(unsigned ch,char * buf,int count);
 void * malloc(unsigned int size);
 void free_s(void * obj, int size);
 
+#ifdef MYDEBUG
+#define mydebug(...) kernel_debug(VA_ARGS)
+#else
+#define mydebug(...) 
+#endif
+
 #define free(x) free_s((x), 0)
 
 /*
