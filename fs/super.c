@@ -126,6 +126,7 @@ static struct super_block * read_super(int dev)
 		free_super(s);
 		return NULL;
 	}
+	__asm__("cld");
 	*((struct d_super_block *) s) =
 		*((struct d_super_block *) bh->b_data);
 	brelse(bh);
