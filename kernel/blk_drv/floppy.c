@@ -163,9 +163,9 @@ static void setup_DMA(void)
 
 	cli();
 	if (addr >= 0x100000) {
-		addr = (long) tmp_floppy_area;
 		if (command == FD_WRITE)
 			copy_buffer(CURRENT->buffer,tmp_floppy_area);
+		addr = (long) tmp_floppy_area;
 	}
 /* mask DMA 2 */
 	immoutb_p(4|2,10);
