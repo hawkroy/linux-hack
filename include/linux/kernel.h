@@ -11,7 +11,7 @@ void * malloc(unsigned int size);
 void free_s(void * obj, int size);
 
 #ifdef MYDEBUG
-#define mydebug(...) kernel_debug(VA_ARGS)
+#define mydebug(...) kernel_debug(__VA_ARGS__)
 #else
 #define mydebug(...) 
 #endif
