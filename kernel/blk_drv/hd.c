@@ -217,10 +217,12 @@ static int drive_busy(void)
 static void reset_controller(void)
 {
 	int	i;
+	int dev = CURRENT_DEV;
 
 	outb(4,HD_CMD);
 	for(i = 0; i < 100; i++) nop();
 	outb(hd_info[0].ctl & 0x0f ,HD_CMD);
+	outb_p(0xa0|dev<<4, HD_CURRENT);
 	if (drive_busy())
 		printk("HD-controller still busy\n\r");
 	if ((i = inb(HD_ERROR)) != 1)

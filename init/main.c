@@ -108,6 +108,7 @@ void main(void)		/* This really IS void, no error here. */
  * enable them
  */
  	ROOT_DEV = ORIG_ROOT_DEV;
+	asm("cld");
  	drive_info = DRIVE_INFO;
 	memory_end = (1<<20) + (EXT_MEM_K<<10);
 	memory_end &= 0xfffff000;
