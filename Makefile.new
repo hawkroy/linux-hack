@@ -1,0 +1,122 @@
+VERSION = 0
+PATCHLEVEL = 0
+SUBLEVEL = 11
+EXTRAVERSION = 
+NAME = Linux Hack for 0.11
+
+MAKEFLAGS += -rR --no-print-directory
+
+unexport LC_ALL
+LC_COLLATE=C
+LC_NUMERIC=C
+export LC_ALL LC_COLLATE LC_NUMERIC
+
+ifeq ("$(origin V)", "command line")
+  KBUILD_VERBOSE = $(V)
+endif
+ifndef KBUILD_VERBOSE
+  KBUILD_VERBOSE = 0
+endif
+
+# Global phony target
+PHONY := _all
+
+ifeq ($(KBUILD_SRC),)
+#
+# Run command: make O=..., change to build-directory
+#
+ifeq ("$(origin O)", "command line")
+  KBUILD_OUTPUT := $(O)
+endif
+
+_all:
+
+# Cancel implicit rules on top Makefile
+$(CURDIR)/Makefile.new Makefile.new: ;
+
+# KBUILD_OUTPUT determined, we first change to build-directory
+ifneq ($(KBUILD_OUTPUT),)
+saved-output := $(KBUILD_OUTPUT)
+$(KBUILD_OUTPUT) := $(shell cd $(KBUILD_OUTPUT) && pwd)
+$(if $(KBUILD_OUTPUT),, \
+	$(error output directory "$(saved-output)" does not exist))
+
+PHONY += $(MAKECMDGOALS) sub-make 
+
+$(filter-out _all sub-make $(CURDIR)/Makefile.new, $(MAKECMDGOALS)) _all: sub-make
+	@:
+
+sub-make: FORCE
+	$(if $(KBUILD_VERBOSE:1=),@)$(MAKE) -C $(KBUILD_OUTPUT) \
+	KBUILD_SRC=$(CURDIR) -f $(CURDIR)/Makefile.new \
+	$(filter-out _all sub-make, $(MAKECMDGOALS))
+
+# Flag will invoke real make function
+skip-makefile := 1
+endif # ifneq($(KBUILD_OUTPUT),)
+endif # ifeq($(KBUILD_SRC),)
+
+ifeq ($(skip-makefile),)
+PHONY += all
+_all: all
+
+# 
+# Variable used for compiled
+#
+srctree	:=	$(if $(KBUILD_SRC), $(KBUILD_SRC), $(CURDIR))
+objtree	:=	$(CURDIR)
+src		:=	$(srctree)
+obj		:=	$(objtree)
+
+VPATH	:=	$(srctree)
+
+export srctree objtree VPATH
+
+#
+# Now, we only support i386 default
+#
+SUBARCH := x86
+
+#
+# Cross compile and select different set of tool-chain
+#
+ARCH 			?= $(SUBARC)
+CROSS_COMPILE	?= $(CONFIG_CROSS_COMPILE:"%"=%)
+
+# Architecture presents in compile.h
+UTS_MACHINE := $(ARCH)
+SRCARCH		:= $(ARCH)
+
+# according $(ARCH) setting source arch 
+ifeq ($(SRCARCH),i386)
+  SRCARCH	:= x86
+endif
+
+# Locate arch specific headers
+hdr-arch := $(SRCARCH)
+
+KCONFIG_CONFIG ?= .config 
+export KCONFIG_CONFIG
+
+# Shell used by KConfig 
+CONFIG_SHELL := $(shell if [ -x "$$BASH" ]; then echo $$BASH; \
+	else if [ -x /bin/bash ]; then echo /bin/bash; \
+	else echo /bin/sh; fi; fi)
+
+HOSTCC			= gcc
+HOSTCXX			= g++
+HOSTCFLAGS		= -Wall -Wmissing-prototypes -Wstrict-prototypes -O2 -fomit-frame-pointer
+HOSTCXXFLAGS	= -O2
+
+# Decide whether build built-in, modular or both
+KBUILD_MODULES :=
+KBUILD_BUILTIN := 1
+
+
+
+endif # ifeq($(skip-makefile),)
+
+PHONY += FORCE
+FORCE:
+
+.PHONY: $(PHONY)
