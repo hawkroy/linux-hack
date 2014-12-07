@@ -4,7 +4,8 @@ SUBLEVEL = 11
 EXTRAVERSION = 
 NAME = Linux Hack for 0.11
 
-MAKEFLAGS += -rR --no-print-directory
+# Don't use makefile internal implicit rules & variables
+MAKEFLAGS += -rR 
 
 unexport LC_ALL
 LC_COLLATE=C
@@ -16,12 +17,39 @@ ifeq ("$(origin V)", "command line")
 endif
 ifndef KBUILD_VERBOSE
   KBUILD_VERBOSE = 0
-endif
+endif 
+
+# Beautify output 
+# --------------------------------------------------
+#
+# Normally, we echo whole command before executing it.
+# If $(quiet) is empty, the whole command will be printed
+# If it is set to "quiet_", only short version will be used
+# If it is set to "silent_", nothing will show
+#
+# If KBUILD_VERBOSE = 0, then command will be hidden
+# If KBUILD_VERBOSE = 1, then command will be displayed
+ifeq ($(KBUILD_VERBOSE),1)
+  quiet =
+  Q =
+ else
+  quiet=quiet_
+  Q = @
+ endif
+
+# If user is running make -s, suppress echoing of command
+ifneq ($(filter s% -s%, $(MAKEFLAGS)),)
+  quiet=silent_
+endif 
+
+export quiet Q KBUILD_VERBOSE 
 
 # Global phony target
 PHONY := _all
 
 ifeq ($(KBUILD_SRC),)
+MAKEFLAGS += --no-print-directory
+
 #
 # Run command: make O=..., change to build-directory
 #
@@ -112,7 +140,208 @@ HOSTCXXFLAGS	= -O2
 KBUILD_MODULES :=
 KBUILD_BUILTIN := 1
 
+ifeq ($(MAKECMDGOALS),)
+  KBUILD_MODULES := 1
+endif 
 
+export KBUILD_MODULES KBUILD_BUILTIN
+export KBUILD_SRC
+
+# Look for make include files relative to root of kernel srctree
+MAKEFLAGS += --include-dir=$(srctree)
+
+# remove implicit rule for Kbuild.include file 
+$(srctree)/scripts/Kbuild.include: ;
+include $(srctree)/scripts/Kbuild.include
+
+# Make variables 
+#
+AS			= $(CROSS_COMPILE)as 
+LD			= $(CROSS_COMPILE)ld 
+CC			= gcc
+CPP			= $(CC) -E
+AR			= ar 
+NM 			= nm 
+STRIP		= strip 
+OBJCOPY		= objcopy 
+OBJDUMP		= objdump 
+AWK			= awk 
+GENKSYMS	= scripts/genksyms/genksyms 
+DEPMOD		= /sbin/depmod 
+PERL		= perl 
+CHECK		= sparse 
+
+CHECKFLAGS  := -D__linux__ -Dlinux -D__STDC__ -Dunix -D__unix__ \
+	-Wbitwise -Wno-return-void $(CF)
+CFLAGS_MODULE	=
+AFLAGS_MODULE	=
+LDFLAGS_MODULE	=
+CFLAGS_KERNEL	=
+AFALGS_KERNEL 	=
+CFLAGS_GCOV		= -fprofile-arcs -ftest-coverage
+
+# Use USERINCLUDE when must reference the UAPI directory only
+# for 0.11 porting, no use now 
+USERINCLUDE		:=
+
+# Use LINUXINCLUDE when must reference the include/ directory
+# Needed to be compatible with the O= option
+LINUXINCLUDE	:= \
+	-I$(srctree)/arch/$(hdr-arch)/include \
+	-Iarch/$(hdr-arch)/include/generated \
+	$(if $(KBUILD_SRC), -I$(srctree)include) \
+	-Iinclude \
+	$(USERINCLUDE)
+
+KBUILD_CPPFLAGS	:= -D__KERNEL__
+
+KBUILD_CFLAGS	:= -Wall -Wundef -Wstrict-prototypes -Wno-trigraphs \
+	-fno-strict-aliasing -fno-common \
+	-Werror-implicit-function-declaration \
+	-Wno-format-security \
+	-fno-delete-null-pointer-checks
+KBUILD_AFLAGS_KERNEL 	:= 
+KBUILD_CFLAGS_KERNEL 	:=
+KBUILD_AFLAGS			:= -D__ASSEMBLY__
+KBUILD_AFLAGS_MODULE	:= -DMODULE
+KBUILD_CFLAGS_MODULE	:= -DMODULE
+KBUILD_LDFLAGS_MODULE	:= -T $(srctree)/scripts/module-common.lds
+
+KERNEL_VERSION = $(VERSION)$(if $(PATCHLEVEL),.$(PATCHLEVEL)$(if $(SUBLEVEL), .$(SUBLEVEL)))$(EXTRAVERSION)
+
+export VERSION PATCHLEVEL SUBLEVEL KERNEL_VERSION
+export ARCH SRCARCH CONFIG_SHELL HOSTCC HOSTCFLAGS CROSS_COMPILE
+export AS LD CC CPP AR NM STRIP OBJCOPY OBJDUMP
+export MAKE AWK GENKSYMS PERL UTS_MACHINE
+export HOSTCXX HOSTCXXFLAGS LDFLAGS_MODULE CHECK CHECKFLAGS
+
+export KBUILD_CPPFLAGS LINUXINCLUDE 
+export KBUILD_CFLAGS CFLAGS_KERNEL CFLAGS_MODULE CFLAGS_GCOV
+export KBUILD_AFLAGS AFALGS_KERNEL AFLAGS_MODULE
+export KBUILD_AFLAGS_MODULE KBUILD_CFLAGS_MODULE KBUILD_LDFLAGS_MODULE
+export KBUILD_AFLAGS_KERNEL KBUILD_CFLAGS_KERNEL
+
+# Files to ignore in find statements
+#
+
+# ------------------------------------------------------------
+# Rules shared between *config target and build target
+
+# Basic helper built in scripts/
+PHONY += scripts_basic
+scripts_basic:
+	$(Q)$(MAKE) $(build)=scripts/basic 
+	$(Q)rm -f .tmp_quiet_recordmcount
+
+# avoid any implicit rule to kick in, define empty command
+scripts/basic/%: scripts_basic ;
+
+PHONY += outputmakefile
+outputmakefile:
+ifneq ($(KBUILD_SRC),)
+	$(Q)ln -fsn $(srctree) source
+	$(Q)$(CONFIG_SHELL) $(srctree)/scripts/mkmakefile \
+		$(srctree) $(objtree) $(VERSION) $(PATCHLEVEL)
+endif
+
+PHONY += asm-generic
+asm-generic:
+	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic \
+		src=asm obj=arch/$(SRCARCH)/include/generated/asm 
+	$(Q)$(MAKE) -f $(srctree)/scripts/Makefile.asm-generic \
+		src=uapi/asm obj=arch/$(SRCARCH)/include/generated/uapi/asm 
+
+not-dot-config-targets	:= clean mrproper distclean help 
+
+config-targets	:= 0
+mixed-targets	:= 0
+dot-config		:= 1
+
+ifneq ($(filter $(not-dot-config-targets), $(MAKECMDGOALS)),)
+    ifeq ($(filter-out $(not-dot-config-targets), $(MAKECMDGOALS)),)
+        dot-config := 0
+    endif
+endif 
+
+ifneq ($(filter config %config, $(MAKECMDGOALS)),)
+    config-targets := 1
+    ifneq ($(filter-out config %config, $(MAKECMDGOALS)),)
+        mixed-targets := 1
+    endif
+endif 
+
+ifeq ($(mixed-targets),1)
+# ---------------------------------------------------------------
+# mixed targets (*config and build targets)
+# handle them one by one 
+%: FORCE
+	# a little strange, why KBUILD_SRC= get empty 
+	$(Q)$(MAKE) -C $(srctree) KBUILD_SRC= $@
+
+else 
+ifeq ($(config-targets),1)
+# ---------------------------------------------------------------
+# only .config targets 
+include $(srctree)/arch/$(SRCARCH)/Makefile 
+export KBUILD_DEFCONFIG KBUILD_KCONFIG
+
+config: scripts_basic outputmakefile FORCE
+	$(Q)mkdir -p include/linux include/config 
+	$(Q)$(MAKE) $(build)=scripts/kconfig $@
+
+%config: scripts_basic outputmakefile FORCE
+	$(Q)mkdir -p include/linux include/config 
+	$(Q)$(MAKE) $(build)=scripts/kconfig $@
+
+else 
+# --------------------------------------------------------------
+#  only build targets 
+PHONY += scripts
+scripts: scripts_basic include/config/auto.conf include/config/tristate.conf \
+	asm-generic
+	$(Q)$(MAKE) $(build)=$(@)
+
+# Objects we will link into vmlinux / subdirs we need visit
+init-y		:= init/
+drivers-y	:= drivers/
+net-y		:= net/
+libs-y		:= lib/
+core-y		:= usr/
+
+ifeq ($(dot-config),1)
+-include include/config/auto.conf.cmd 
+
+# remove implicit rule 
+$(KCONFIG_CONFIG) include/config/auto.conf.cmd: ;
+
+# If .config is newer than include/config/auto.conf, then someone maybe
+# forget rerun `make oldconfig`
+# If auto.conf.cmd is missing then we are probably in a clean tree so 
+# we execute config step to catch up updated Kconfig files
+include/config/%.conf: $(KCONFIG_CONFIG) include/config/auto.conf.cmd 
+	$(Q)$(MAKE) -f $(srctree)/Makefile silentoldconfig 
+
+else 
+# no need update .config, use old one
+# need dummy targets
+include/config/auto.conf: ;
+endif # ifeq($(dot-config),1)
+
+all: vmlinux
+
+ifdef CONFIG_READABLE_ASM
+KBUILD_CFLAGS += $(call cc-option,-fno-reorder-blocks,) \
+				 $(call cc-option,-fno-ipa-cp-clone,) \
+				 $(call cc-option,-fno-partial-inlining)
+endif 
+
+ifneq ($(CONFIG_FRAME_WARN),0)
+KBUILD_CFLAGS += $(call cc-option,-Wframe-larger-than=${CONFIG_FRAME_WARN})
+endif 
+
+
+
+endif # ifeq($(mixed-targets),1)
 
 endif # ifeq($(skip-makefile),)
 
